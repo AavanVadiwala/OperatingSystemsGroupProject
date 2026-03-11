@@ -15,6 +15,7 @@ Aavan Vadiwala and Isabel Gilchrest
 #include <stddef.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
+#include <math.h>
 
 /*For each of the n processes, in order A0 through Z9, perform the steps below, with I/O-bound
 processes generated first. Note that all generated values are integers, even though we use a floatingpoint pseudo-random number generator.
@@ -22,21 +23,6 @@ Define your exponential distribution pseudo-random number generation function as
 (or another similar name) and have it return the next pseudo-random number in the sequence,
 capped by *(argv+5).
 */
-
-void createPIDs( int n, char ** processIDs){
-	int count = 0;
-	char letter = 'A';
-	for( int i = 0; i < n; i++){
-		if ( count >= 10){
-			letter++;
-		}
-		else{ 
-			count++; 
-		}
-		fprintf(*(processIDs + i), "%s%d", letter, count);
-	}
-}
-
 void createPIDs(int n, char **processIDs) {
     char letter = 'A';
     for (int i = 0; i < n; i++) {
@@ -50,7 +36,7 @@ number generated from the uniform distribution obtained via drand48(), then mult
 by 16; this should obtain a random integer in the inclusive range [1, 16]*/        
 double next_exp(double lamda, int upperBound) {
     double val = upperBound;
-    while (val > upperBound) {
+    while (val >= upperBound) {
         double r = drand48();
         val = -log(r) / lamda;
     }
@@ -68,12 +54,12 @@ processes, multiply the I/O burst time by 8 such that I/O burst time is close to
 magnitude longer than CPU burst time; as noted above, for CPU-bound processes, multiply
 the CPU burst time by 6; and for the last CPU burst, do not generate a corresponding I/O
 burst time, since each process ends with one final CPU burst*/
-void getBursts(float *CPU_burst_times, float *IO_burst_times, double lamda, int upperBound, int num_bursts) {
+void getBursts(int *CPU_burst_times, int *IO_burst_times, double lamda, int upperBound, int num_bursts, bool is_cpu_bound) {
     for (int i = 0; i < num_bursts - 1; i++) {
-        CPU_burst_times[i] = ceil(next_exp(lamda, upperBound)) * 6;
-        IO_burst_times[i] = ceil(next_exp(lamda, upperBound)) * 8; 
+        CPU_burst_times[i] = (int)ceil(next_exp(lamda, upperBound)) * (is_cpu_bound ? 6 : 1);
+        IO_burst_times[i]  = (int)ceil(next_exp(lamda, upperBound)) * (is_cpu_bound ? 1 : 8);
     }
-    CPU_burst_times[num_bursts - 1] = ceil(next_exp(lamda, upperBound)) * 6;
+    CPU_burst_times[num_bursts - 1] = (int)ceil(next_exp(lamda, upperBound)) * (is_cpu_bound ? 6 : 1);
 }
 
 int main( int argc, char ** argv )
@@ -98,33 +84,28 @@ int main( int argc, char ** argv )
     srand48(seed);
 
 	char ** processIDs = calloc( n, sizeof(char*));
-	createPIDs( n, &processIDs);
+	createPIDs( n, processIDs);
 
     for( int i = 0; i < n; i++){
             
-        printf( "%s", *(processIDs + i) );
+        printf( "%s", processIDs[i] );
         int arrival, num_bursts;
         getNumBurstsarrivals(lamda, upperBound, &arrival, &num_bursts);
 
-        float *CPU_burst_times = malloc(num_bursts * sizeof(float));
-        float *IO_burst_times = malloc((num_bursts - 1) * sizeof(float));
+        int *CPU_burst_times = malloc(num_bursts * sizeof(int));
+        int *IO_burst_times = malloc((num_bursts - 1) * sizeof(int));
+        bool is_cpu_bound = (i >= n-ncpu);
 
         // Pass the pointers directly
-        getBursts(CPU_burst_times, IO_burst_times, lamda, upperBound, num_bursts);
+        getBursts(CPU_burst_times, IO_burst_times, lamda, upperBound, num_bursts, is_cpu_bound);
 
         // Print results here...
 
         free(CPU_burst_times);
         free(IO_burst_times);
-        free(processIDs);
-        
-
+        free(processIDs[i]);
     }
 
-
+    free(processIDs);
 	return EXIT_SUCCESS;
 }
-
-
-
-
