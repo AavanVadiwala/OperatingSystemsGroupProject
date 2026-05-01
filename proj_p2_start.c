@@ -64,92 +64,48 @@ void getBursts(int *CPU_burst_times, int *IO_burst_times, double lamda, int uppe
 
 int main( int argc, char ** argv )
 {
-  
-    setvbuf(stdout, NULL, _IONBF, 0);
+	
+	setvbuf(stdout, NULL, _IONBF, 0);
 
-    if ( argc != 6 ) {
-        fprintf( stderr, "ERROR: Invalid arguments\n" );
-        fprintf( stderr, "USAGE: proj1.out <n> <ncpu> <seed> <lambda>  <threshold> <tcs> <alpha>\n" );
-        abort();
-    }
-    
-    // initilize arg variables
+  	if ( argc != 6 ) {
+    	fprintf( stderr, "ERROR: Invalid arguments\n" );
+    	fprintf( stderr, "USAGE: proj1.out <n> <ncpu> <seed> <lambda>  <threshold>\n" );
+    	// return EXIT_FAILURE;
+    	abort();
+  	}
+
+	// implemnet eror checking for each argv (if not null or wrong type)
+
     int n = atoi(argv[1]);
-    if ( n < 1 || n > 260) {
-        fprintf( stderr, "ERROR: out of bounds for arg n\n" );
-        abort();
-    }
     int ncpu = atoi(argv[2]);
-    if (ncpu < 0 || ncpu > n) {
-        fprintf( stderr, "ERROR: out of bounds for arg ncpu\n" );
-        abort();
-    }
-    int tcs = atoi(argv[6]);
-    if (tcs <= 0 || tcs % 2 != 0) {
-        fprintf( stderr, "ERROR: tcs not a valid value, must be a positive even integer\n" );
-    }
-    double alpha = atof(argv[7]);
-    if ((alpha < 0 || alpha > 1) && alpha != -1) {
-        fprintf( stderr, "ERROR: out of bounds for arg alpha\n" );
-    }
-    int slice = atoi(argv[8]);
-    if (slice <= 0) {
-        fprintf(stderr, "ERROR: out of bounds for arg slice\n", );
-    }
-
-    // rest of variables can be any value
-    int seed = atoi(argv[3]);   
+    int seed = atoi(argv[3]);
     double lamda = atof(argv[4]);
     int upperBound = atoi(argv[5]);
     srand48(seed);
 
-    char ** processIDs = calloc( n, sizeof(char*));
-    createPIDs( n, processIDs);
+	char ** processIDs = calloc( n, sizeof(char*));
+	createPIDs( n, processIDs);
 
-    if (ncpu == 1) { printf("<<< -- process set (n=%d) with %d CPU-bound process\n", n, ncpu); }
-    else { printf("<<< -- process set (n=%d) with %d CPU-bound processes\n", n, ncpu); }
-    printf("<<< -- seed=%d; lambda=%.6f; upper bound=%d\n", seed, lamda, upperBound);
-
-    // go through each process and calculate cpu and i/o burst times
     for( int i = 0; i < n; i++){
-        printf("\n");
-        
+            
+        printf( "%s", processIDs[i] );
         int arrival, num_bursts;
         getNumBurstsarrivals(lamda, upperBound, &arrival, &num_bursts);
-        
 
         int *CPU_burst_times = malloc(num_bursts * sizeof(int));
         int *IO_burst_times = malloc((num_bursts - 1) * sizeof(int));
         bool is_cpu_bound = (i >= n-ncpu);
 
-        if (is_cpu_bound) { printf( "CPU-bound process %s:", processIDs[i] ); }
-        else { printf( "I/O-bound process %s:", processIDs[i] ); } 
-
-        if (num_bursts == 1) { printf(" arrival time %dms; %d CPU burst:\n", arrival, num_bursts); }
-        else { printf(" arrival time %dms; %d CPU bursts:\n", arrival, num_bursts); }
-
         // Pass the pointers directly
         getBursts(CPU_burst_times, IO_burst_times, lamda, upperBound, num_bursts, is_cpu_bound);
-        
-        // print burst results 
-        // more cpu bursts than i/o bursts so add final cpu birst outside of print loop        
-        for (int i = 0; i < num_bursts-1; i++) {
-            printf("==> CPU burst %dms ==> I/O burst %dms\n", CPU_burst_times[i], IO_burst_times[i]);
-        }
-        printf("==> CPU burst %dms\n", CPU_burst_times[num_bursts-1]);
+
+        // Print results here...
 
         free(CPU_burst_times);
         free(IO_burst_times);
         free(processIDs[i]);
     }
 
-    /*
-    In addition to the above output (which is sent to stdout), generate an output file called simout.txt
-    that contains some general statistics followed by specific statistics for each simulated algorithm.
-    The file format is shown below, with # as a placeholder for actual numerical data. If calculating
-    an average will cause division by 0, simply set the average to 0
-    */
-
     free(processIDs);
-    return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }
